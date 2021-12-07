@@ -33,6 +33,12 @@ Highlighter.propTypes = {
   unhighlightStyle: PropTypes.object
 }
 
+const createLinkElement = (text, link) => createElement('a', {
+  href: link,
+  children: text,
+  target: '_blank'
+})
+
 /**
  * Highlights all occurrences of search terms (searchText) within a string (textToHighlight).
  * This function returns an array of strings and <span>s (wrapping highlighted words).
@@ -82,6 +88,22 @@ export default function Highlighter ({
     ...rest,
     children: chunks.map((chunk, index) => {
       const text = textToHighlight.substr(chunk.start, chunk.end - chunk.start)
+      const reg = /(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/~+#-]*[\w@?^=%&\/~+#-])/g
+      const links = text.match(reg)
+
+      let awesomeChildren = text
+
+      if (links !== null) { // has URLs
+        awesomeChildren = []
+        let rest = text;
+
+        links.forEach(link => {
+          rest = rest.replace(link, '')
+          awesomeChildren.push(createLinkElement(link, link))
+        })
+
+        awesomeChildren = [rest].concat(awesomeChildren)
+      }
 
       if (chunk.highlight) {
         highlightIndex++
@@ -106,7 +128,7 @@ export default function Highlighter ({
           : highlightStyle
 
         const props = {
-          children: text,
+          children: awesomeChildren,
           className: highlightClassNames,
           key: index,
           style: highlightStyles
@@ -121,7 +143,7 @@ export default function Highlighter ({
         return createElement(HighlightTag, props)
       } else {
         return createElement('span', {
-          children: text,
+          children: awesomeChildren,
           className: unhighlightClassName,
           key: index,
           style: unhighlightStyle
